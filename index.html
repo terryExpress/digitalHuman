@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Human</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #101018;
+    color: #e0e0e0;
+    display: flex;
+    height: 100vh;
+  }
+
+  /* --- Left: Video Area with padding --- */
+  .video-area {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: #101018;
+  }
+
+  .video-viewport {
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    aspect-ratio: 9 / 16;
+    max-height: calc(100vh - 80px);
+    border-radius: 16px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+
+  /* idle video: always at bottom, never stops */
+  #idleVideo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+  }
+
+  /* talk video: on top, fade in/out */
+  #talkVideo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+
+  #talkVideo.active { opacity: 1; }
+
+  /* Status indicator */
+  .status-badge {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 10;
+    backdrop-filter: blur(8px);
+    transition: all 0.3s ease;
+  }
+  .status-badge.idle {
+    background: rgba(76, 175, 80, 0.25);
+    color: #81c784;
+    border: 1px solid rgba(76, 175, 80, 0.4);
+  }
+  .status-badge.talking {
+    background: rgba(33, 150, 243, 0.25);
+    color: #64b5f6;
+    border: 1px solid rgba(33, 150, 243, 0.4);
+  }
+
+  /* Unmute overlay */
+  .unmute-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.35);
+    cursor: pointer;
+    border-radius: 16px;
+    transition: opacity 0.3s;
+  }
+  .unmute-overlay.hidden { opacity: 0; pointer-events: none; }
+  .unmute-overlay span {
+    padding: 12px 24px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(12px);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  /* Queue indicator */
+  .queue-indicator {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    background: rgba(255, 152, 0, 0.2);
+    color: #ffb74d;
+    border: 1px solid rgba(255, 152, 0, 0.3);
+    z-index: 10;
+    backdrop-filter: blur(8px);
+    display: none;
+  }
+
+  /* --- Right: Chat Panel --- */
+  .chat-panel {
+    width: min(400px, 33vw);
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    background: #14141e;
+    border-left: 1px solid #1e1e2e;
+    height: 100vh;
+  }
+
+  .chat-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #1e1e2e;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+  }
+
+  .chat-messages::-webkit-scrollbar { width: 4px; }
+  .chat-messages::-webkit-scrollbar-track { background: transparent; }
+  .chat-messages::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+  .msg {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  .msg.user {
+    align-self: flex-end;
+    background: #2563eb;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .msg.system {
+    align-self: flex-start;
+    background: #1e1e2e;
+    color: #aaa;
+    border-bottom-left-radius: 4px;
+    font-size: 13px;
+  }
+
+  .quick-actions {
+    padding: 12px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-top: 1px solid #1e1e2e;
+    flex-shrink: 0;
+  }
+  .quick-btn {
+    padding: 6px 14px;
+    border-radius: 16px;
+    border: 1px solid #2a2a3a;
+    background: #1a1a28;
+    color: #ccc;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .quick-btn:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+  }
+
+  .chat-input-area {
+    padding: 16px 20px;
+    border-top: 1px solid #1e1e2e;
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .chat-input-area input {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid #2a2a3a;
+    background: #1a1a28;
+    color: #e0e0e0;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    min-width: 0;
+  }
+  .chat-input-area input:focus { border-color: #2563eb; }
+  .chat-input-area input::placeholder { color: #555; }
+
+  .chat-input-area button {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    background: #2563eb;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .chat-input-area button:hover { background: #1d4ed8; }
+</style>
+</head>
+<body>
+
+<!-- Video Area -->
+<div class="video-area">
+  <div class="video-viewport">
+    <!-- idle: always playing, never stops, always visible at bottom -->
+    <video id="idleVideo" playsinline loop></video>
+    <!-- talk: on top, opacity controlled, shown only when speaking -->
+    <video id="talkVideo" playsinline></video>
+    <div id="unmuteOverlay" class="unmute-overlay">
+      <span>Click to enable audio</span>
+    </div>
+    <div id="statusBadge" class="status-badge idle">Listening</div>
+    <div id="queueIndicator" class="queue-indicator"></div>
+  </div>
+</div>
+
+<!-- Chat Panel -->
+<div class="chat-panel">
+  <div class="chat-header">Chat with Alice</div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="msg system">Hi! I'm Alice. Try sending me one of the quick actions below, or type a keyword like "intro", "recommend", or "idea".</div>
+  </div>
+  <div class="quick-actions">
+    <button class="quick-btn" data-cmd="intro">Self Intro</button>
+    <button class="quick-btn" data-cmd="recommend">Recommend</button>
+    <button class="quick-btn" data-cmd="idea">Better Idea</button>
+  </div>
+  <div class="chat-input-area">
+    <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off" />
+    <button id="sendBtn">Send</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const IDLE_SRC = 'Alice_listening.mp4';
+
+  const VIDEO_MAP = {
+    intro:     'Alice_intro.mp4',
+    '介绍':    'Alice_intro.mp4',
+    recommend: 'Alice_firstRecommend.mp4',
+    '推荐':    'Alice_firstRecommend.mp4',
+    idea:      'Alice_betterIdea.mp4',
+    '想法':    'Alice_betterIdea.mp4',
+  };
+
+  const RESPONSE_MAP = {
+    'Alice_intro.mp4':           'Let me introduce myself...',
+    'Alice_firstRecommend.mp4':  'Here is my recommendation!',
+    'Alice_betterIdea.mp4':      'I have a better idea for you!',
+  };
+
+  // --- State ---
+  let state = 'idle'; // idle | talking
+  const queue = [];
+  let audioUnlocked = false;
+
+  // --- DOM ---
+  const idleVideo = document.getElementById('idleVideo');
+  const talkVideo = document.getElementById('talkVideo');
+  const statusBadge = document.getElementById('statusBadge');
+  const queueIndicator = document.getElementById('queueIndicator');
+  const chatMessages = document.getElementById('chatMessages');
+  const chatInput = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const unmuteOverlay = document.getElementById('unmuteOverlay');
+
+  // --- Audio unlock ---
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    idleVideo.muted = false;
+    talkVideo.muted = false;
+    unmuteOverlay.classList.add('hidden');
+  }
+
+  unmuteOverlay.addEventListener('click', () => {
+    unlockAudio();
+    idleVideo.play().catch(() => {});
+  });
+
+  // --- Preload videos ---
+  const preloaded = {};
+  function preloadVideo(src) {
+    if (preloaded[src]) return;
+    const v = document.createElement('video');
+    v.preload = 'auto';
+    v.src = src;
+    v.load();
+    preloaded[src] = v;
+  }
+  [...new Set(Object.values(VIDEO_MAP))].forEach(preloadVideo);
+  preloadVideo(IDLE_SRC);
+
+  // --- Init: idle always plays ---
+  function init() {
+    idleVideo.src = IDLE_SRC;
+    idleVideo.muted = true;
+    idleVideo.play().catch(() => {});
+    updateStatusUI('idle');
+  }
+
+  // --- Status UI ---
+  function updateStatusUI(s) {
+    state = s;
+    statusBadge.textContent = s === 'idle' ? 'Listening' : 'Speaking';
+    statusBadge.className = 'status-badge ' + (s === 'idle' ? 'idle' : 'talking');
+    updateQueueUI();
+  }
+
+  function updateQueueUI() {
+    if (queue.length > 0) {
+      queueIndicator.style.display = 'block';
+      queueIndicator.textContent = `${queue.length} in queue`;
+    } else {
+      queueIndicator.style.display = 'none';
+    }
+  }
+
+  // --- Play talk video (overlay on top of idle) ---
+  function playTalkVideo(src) {
+    updateStatusUI('talking');
+
+    // idle keeps playing underneath - we just mute it so audio doesn't overlap
+    idleVideo.muted = true;
+
+    talkVideo.src = src;
+    talkVideo.muted = !audioUnlocked;
+    talkVideo.loop = false;
+
+    const onReady = () => {
+      talkVideo.removeEventListener('canplaythrough', onReady);
+      talkVideo.play().catch(() => {});
+      // Fade in talk video over idle
+      talkVideo.classList.add('active');
+    };
+
+    talkVideo.onended = () => {
+      talkVideo.onended = null;
+      // Fade out talk video, idle is already playing underneath
+      talkVideo.classList.remove('active');
+
+      // Unmute idle if audio is unlocked
+      if (audioUnlocked) idleVideo.muted = false;
+
+      // Check queue
+      if (queue.length > 0) {
+        const next = queue.shift();
+        updateQueueUI();
+        // Small delay to let fade-out complete before next talk
+        setTimeout(() => playTalkVideo(next), 120);
+      } else {
+        updateStatusUI('idle');
+      }
+    };
+
+    if (talkVideo.readyState >= 4) {
+      onReady();
+    } else {
+      talkVideo.addEventListener('canplaythrough', onReady);
+    }
+    talkVideo.load();
+  }
+
+  // --- Handle user input ---
+  function handleInput(text) {
+    const trimmed = text.trim().toLowerCase();
+    if (!trimmed) return;
+
+    if (!audioUnlocked) unlockAudio();
+    addMessage(text, 'user');
+
+    const videoSrc = VIDEO_MAP[trimmed];
+    if (!videoSrc) {
+      addMessage('Sorry, I don\'t understand that command. Try "intro", "recommend", or "idea".', 'system');
+      return;
+    }
+
+    const response = RESPONSE_MAP[videoSrc] || '';
+    if (response) addMessage(response, 'system');
+
+    if (state === 'idle') {
+      playTalkVideo(videoSrc);
+    } else {
+      queue.push(videoSrc);
+      addMessage(`(Queued - ${queue.length} waiting)`, 'system');
+      updateQueueUI();
+    }
+  }
+
+  // --- Chat UI ---
+  function addMessage(text, type) {
+    const div = document.createElement('div');
+    div.className = `msg ${type}`;
+    div.textContent = text;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  sendBtn.addEventListener('click', () => {
+    if (chatInput.value.trim()) {
+      handleInput(chatInput.value);
+      chatInput.value = '';
+    }
+  });
+
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && chatInput.value.trim()) {
+      handleInput(chatInput.value);
+      chatInput.value = '';
+    }
+  });
+
+  document.querySelectorAll('.quick-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleInput(btn.dataset.cmd));
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>
