@@ -272,12 +272,14 @@
 <div class="chat-panel">
   <div class="chat-header">Chat with Alice</div>
   <div class="chat-messages" id="chatMessages">
-    <div class="msg system">Hi! I'm Alice. Try sending me one of the quick actions below, or type a keyword like "intro", "recommend", or "idea".</div>
+    <div class="msg system">Hi! I'm Alice. Try the quick actions below, or type: "intro", "advice", "idea", "idea2", or "reject".</div>
   </div>
   <div class="quick-actions">
-    <button class="quick-btn" data-cmd="intro">Self Intro</button>
-    <button class="quick-btn" data-cmd="recommend">Recommend</button>
-    <button class="quick-btn" data-cmd="idea">Better Idea</button>
+    <button class="quick-btn" data-cmd="intro">Intro</button>
+    <button class="quick-btn" data-cmd="advice">Advice</button>
+    <button class="quick-btn" data-cmd="idea">Idea</button>
+    <button class="quick-btn" data-cmd="idea2">Idea 2</button>
+    <button class="quick-btn" data-cmd="reject">Reject</button>
   </div>
   <div class="chat-input-area">
     <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off" />
@@ -287,21 +289,27 @@
 
 <script>
 (() => {
-  const IDLE_SRC = 'Alice_listening.mp4';
+  const IDLE_SRC = 'video_asset/listening.mp4';
 
   const VIDEO_MAP = {
-    intro:     'Alice_intro.mp4',
-    '介绍':    'Alice_intro.mp4',
-    recommend: 'Alice_firstRecommend.mp4',
-    '推荐':    'Alice_firstRecommend.mp4',
-    idea:      'Alice_betterIdea.mp4',
-    '想法':    'Alice_betterIdea.mp4',
+    intro:        'video_asset/intro.mp4',
+    '介绍':       'video_asset/intro.mp4',
+    advice:       'video_asset/advice_1.mp4',
+    '建议':       'video_asset/advice_1.mp4',
+    idea:         'video_asset/betterIdea.mp4',
+    '想法':       'video_asset/betterIdea.mp4',
+    idea2:        'video_asset/betterIdea_2.mp4',
+    '想法2':      'video_asset/betterIdea_2.mp4',
+    reject:       'video_asset/reject_Idea.mp4',
+    '拒绝':       'video_asset/reject_Idea.mp4',
   };
 
   const RESPONSE_MAP = {
-    'Alice_intro.mp4':           'Let me introduce myself...',
-    'Alice_firstRecommend.mp4':  'Here is my recommendation!',
-    'Alice_betterIdea.mp4':      'I have a better idea for you!',
+    'video_asset/intro.mp4':         'Let me introduce myself...',
+    'video_asset/advice_1.mp4':      'Here is my advice for you!',
+    'video_asset/betterIdea.mp4':    'I have a better idea!',
+    'video_asset/betterIdea_2.mp4':  'Actually, here\'s another thought...',
+    'video_asset/reject_Idea.mp4':   'Hmm, I don\'t think that\'s the best approach.',
   };
 
   // --- State ---
@@ -426,7 +434,7 @@
 
     const videoSrc = VIDEO_MAP[trimmed];
     if (!videoSrc) {
-      addMessage('Sorry, I don\'t understand that command. Try "intro", "recommend", or "idea".', 'system');
+      addMessage('Sorry, I don\'t understand that command. Try "intro", "advice", "idea", "idea2", or "reject".', 'system');
       return;
     }
 
