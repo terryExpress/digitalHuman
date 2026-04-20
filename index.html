@@ -217,7 +217,12 @@
 
   // ===================== PARSE CONDITION =====================
   const params = new URLSearchParams(window.location.search);
-  const condition = params.get('c') || 'dh_gentle';
+  // Condition codes (opaque to participants):
+  // 1 = DH + gentle,  2 = DH + harsh
+  // 3 = AI + gentle,  4 = AI + harsh
+  const condCode = params.get('c') || '1';
+  const COND_MAP = { '1': 'dh_gentle', '2': 'dh_harsh', '3': 'ai_gentle', '4': 'ai_harsh' };
+  const condition = COND_MAP[condCode] || 'dh_gentle';
   const isDH = condition.startsWith('dh');
   const isGentle = condition.endsWith('gentle');
   const persuasionStyle = isGentle ? 'gentle' : 'harsh';
