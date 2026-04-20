@@ -356,8 +356,8 @@
         const text = SCRIPTS[videoKey];
         const words = text.split(' ');
         const videoDuration = talkVideo.duration || 10;
-        // Spread words across ~80% of video duration, starting at 1s
-        const totalSubTime = (videoDuration - 1) * 0.8;
+        // Spread words across ~95% of video duration, starting at 2s
+        const totalSubTime = (videoDuration - 2) * 0.95;
         const wordDelay = (totalSubTime / words.length) * 1000;
 
         subtitleDiv = document.createElement('div');
@@ -373,7 +373,7 @@
             wi++;
             subtitleTimer = setTimeout(showWord, wordDelay);
           }
-        }, 1000);
+        }, 2000);
       };
 
       talkVideo.onended = () => {
