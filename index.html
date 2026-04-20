@@ -1,18 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Digital Human</title>
+<title>Iowa Tourism Project</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  html, body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-  }
-
+  html, body { width: 100%; height: 100%; overflow: hidden; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #101018;
@@ -21,191 +15,151 @@
     height: 100vh;
   }
 
-  /* --- Left: Video Area --- */
+  /* === VIDEO AREA (DH conditions only) === */
   .video-area {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    flex: 1; min-width: 0;
+    display: flex; align-items: center; justify-content: center;
     padding: 40px;
   }
+  .video-area.hidden { display: none; }
 
   .video-viewport {
-    position: relative;
-    width: 100%;
-    max-width: 720px;
-    aspect-ratio: 9 / 16;
-    max-height: calc(100vh - 80px);
-    border-radius: 16px;
-    overflow: hidden;
-    background: #000;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    position: relative; width: 100%; max-width: 720px;
+    aspect-ratio: 9/16; max-height: calc(100vh - 80px);
+    border-radius: 16px; overflow: hidden;
+    background: #000; box-shadow: 0 8px 40px rgba(0,0,0,0.5);
   }
-
-  #idleVideo {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    z-index: 1;
+  #idleVideo, #talkVideo {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
   }
-
-  #talkVideo {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    z-index: 2;
-    opacity: 0;
-    transition: opacity 0.1s ease;
-  }
+  #idleVideo { z-index: 1; }
+  #talkVideo { z-index: 2; opacity: 0; transition: opacity 0.1s ease; }
   #talkVideo.active { opacity: 1; }
 
   .status-badge {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    z-index: 10;
-    backdrop-filter: blur(8px);
-    transition: all 0.3s ease;
+    position: absolute; top: 16px; left: 16px;
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 500; z-index: 10;
+    backdrop-filter: blur(8px); transition: all 0.3s;
   }
   .status-badge.idle { background: rgba(76,175,80,0.25); color: #81c784; border: 1px solid rgba(76,175,80,0.4); }
   .status-badge.talking { background: rgba(33,150,243,0.25); color: #64b5f6; border: 1px solid rgba(33,150,243,0.4); }
 
   .unmute-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0,0,0,0.35);
-    cursor: pointer;
-    border-radius: 16px;
-    transition: opacity 0.3s;
+    position: absolute; inset: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.35); cursor: pointer;
+    border-radius: 16px; transition: opacity 0.3s;
   }
   .unmute-overlay.hidden { opacity: 0; pointer-events: none; }
   .unmute-overlay span {
-    padding: 12px 24px;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.12);
-    backdrop-filter: blur(12px);
-    color: #fff;
-    font-size: 15px;
-    font-weight: 500;
+    padding: 12px 24px; border-radius: 10px;
+    background: rgba(255,255,255,0.12); backdrop-filter: blur(12px);
+    color: #fff; font-size: 15px; font-weight: 500;
     border: 1px solid rgba(255,255,255,0.2);
   }
 
-  /* --- Right: Chat Panel --- */
+  /* === CHAT PANEL === */
   .chat-panel {
-    width: min(420px, 35vw);
-    min-width: 300px;
-    display: flex;
-    flex-direction: column;
-    background: #14141e;
-    border-left: 1px solid #1e1e2e;
-    height: 100vh;
+    width: min(460px, 38vw); min-width: 340px;
+    display: flex; flex-direction: column;
+    background: #14141e; border-left: 1px solid #1e1e2e; height: 100vh;
+  }
+  /* AI mode: full width */
+  .chat-panel.full-width {
+    width: 100%; max-width: 700px; min-width: unset;
+    margin: 0 auto; border-left: none;
+    border-radius: 0;
   }
 
   .chat-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid #1e1e2e;
-    font-size: 16px;
-    font-weight: 600;
-    color: #fff;
-    flex-shrink: 0;
+    padding: 20px 24px; border-bottom: 1px solid #1e1e2e;
+    font-size: 16px; font-weight: 600; color: #fff; flex-shrink: 0;
   }
 
   .chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-height: 0;
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 14px; min-height: 0;
   }
   .chat-messages::-webkit-scrollbar { width: 4px; }
   .chat-messages::-webkit-scrollbar-track { background: transparent; }
   .chat-messages::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
 
   .msg {
-    max-width: 88%;
-    padding: 10px 14px;
-    border-radius: 12px;
-    font-size: 14px;
-    line-height: 1.5;
-    word-break: break-word;
+    max-width: 88%; padding: 10px 14px; border-radius: 12px;
+    font-size: 14px; line-height: 1.6; word-break: break-word;
   }
-  .msg.alice {
-    align-self: flex-start;
-    background: #1e1e2e;
-    color: #ccc;
+  .msg.assistant {
+    align-self: flex-start; background: #1e1e2e; color: #ccc;
     border-bottom-left-radius: 4px;
   }
-  .msg.user {
-    align-self: flex-end;
-    background: #2563eb;
-    color: #fff;
+  .msg.user-choice {
+    align-self: flex-end; background: #2563eb; color: #fff;
     border-bottom-right-radius: 4px;
   }
-
-  /* Dynamic option buttons */
-  .options-area {
-    padding: 16px 20px;
-    border-top: 1px solid #1e1e2e;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  .msg .typing-dots::after {
+    content: '...';
+    animation: dots 1.2s steps(4, end) infinite;
   }
+  @keyframes dots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+  }
+
+  /* === OPTIONS AREA === */
+  .options-area {
+    padding: 16px 20px; border-top: 1px solid #1e1e2e;
+    flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
+  }
+  .options-area.hidden { display: none; }
 
   .option-btn {
-    width: 100%;
-    padding: 12px 18px;
-    border-radius: 10px;
-    border: 1px solid #2a2a3a;
-    background: #1a1a28;
-    color: #ddd;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: left;
+    width: 100%; padding: 12px 16px; border-radius: 10px;
+    border: 1px solid #2a2a3a; background: #1a1a28;
+    color: #ddd; font-size: 13px; cursor: pointer;
+    transition: all 0.2s; text-align: left; line-height: 1.4;
   }
-  .option-btn:hover {
-    background: #2563eb;
-    border-color: #2563eb;
-    color: #fff;
-  }
-  .option-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+  .option-btn:hover { background: #2563eb; border-color: #2563eb; color: #fff; }
+
+  .options-label {
+    font-size: 12px; color: #888; margin-bottom: 4px; font-weight: 500;
   }
 
-  .options-hint {
-    font-size: 12px;
-    color: #555;
-    text-align: center;
-    padding: 4px 0;
+  .waiting-hint {
+    font-size: 12px; color: #555; text-align: center; padding: 12px 0;
   }
 
-  .options-area.waiting .option-btn {
-    opacity: 0.4;
-    pointer-events: none;
+  /* === AI-only start overlay === */
+  .ai-start-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    background: #101018; cursor: pointer;
   }
+  .ai-start-overlay.hidden { display: none; }
+  .ai-start-overlay span {
+    padding: 16px 32px; border-radius: 12px;
+    background: #2563eb; color: #fff;
+    font-size: 16px; font-weight: 500;
+  }
+
+  /* === END SCREEN === */
+  .end-screen {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+    background: #101018;
+  }
+  .end-screen.hidden { display: none; }
+  .end-screen h2 { color: #fff; font-size: 22px; }
+  .end-screen p { color: #aaa; font-size: 15px; max-width: 500px; text-align: center; line-height: 1.6; }
 </style>
 </head>
 <body>
 
-<!-- Video Area -->
-<div class="video-area">
+<!-- Video Area (DH only) -->
+<div class="video-area" id="videoArea">
   <div class="video-viewport">
     <video id="idleVideo" playsinline loop></video>
     <video id="talkVideo" playsinline></video>
@@ -216,236 +170,314 @@
   </div>
 </div>
 
+<!-- AI start overlay -->
+<div class="ai-start-overlay hidden" id="aiStartOverlay">
+  <span>Click to start the conversation</span>
+</div>
+
 <!-- Chat Panel -->
-<div class="chat-panel">
-  <div class="chat-header">Chat with Alice</div>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header" id="chatHeader">Iowa Tourism Project</div>
   <div class="chat-messages" id="chatMessages"></div>
-  <div class="options-area" id="optionsArea">
-    <div class="options-hint">Click the video to begin</div>
-  </div>
+  <div class="options-area hidden" id="optionsArea"></div>
+</div>
+
+<!-- End Screen -->
+<div class="end-screen hidden" id="endScreen">
+  <h2>Thank you!</h2>
+  <p>Your responses have been recorded. You may now close this window or proceed to the next section of the survey.</p>
 </div>
 
 <script>
 (() => {
-  // ========== DIALOGUE TREE ==========
-  // Edit this object to change the conversation flow.
-  // Each node: { video, message, options: [{ label, next }] }
-  // Set options to [] or omit for a terminal/end node.
-  const DIALOGUE_TREE = {
-    start: {
-      video: 'video_asset/intro.mp4',
-      message: 'Hi! Let me introduce myself and tell you what I can help with.',
-      options: [
-        { label: '💡 Give me some advice', next: 'advice' },
-        { label: '🤔 I have an idea to share', next: 'idea' },
-      ]
-    },
-    advice: {
-      video: 'video_asset/advice_1.mp4',
-      message: 'Here is my advice for you!',
-      options: [
-        { label: '💡 I have a better idea', next: 'betterIdea' },
-        { label: '❌ I don\'t think that works', next: 'reject' },
-      ]
-    },
-    idea: {
-      video: 'video_asset/betterIdea.mp4',
-      message: 'I have a better idea for you!',
-      options: [
-        { label: '🔄 Tell me another idea', next: 'betterIdea2' },
-        { label: '❌ I reject this idea', next: 'reject' },
-      ]
-    },
-    betterIdea: {
-      video: 'video_asset/betterIdea.mp4',
-      message: 'How about this approach instead?',
-      options: [
-        { label: '🔄 Show me another option', next: 'betterIdea2' },
-        { label: '❌ I reject this', next: 'reject' },
-        { label: '🔁 Start over', next: 'start' },
-      ]
-    },
-    betterIdea2: {
-      video: 'video_asset/betterIdea_2.mp4',
-      message: 'Actually, here\'s another thought...',
-      options: [
-        { label: '❌ I don\'t think so', next: 'reject' },
-        { label: '🔁 Start over', next: 'start' },
-      ]
-    },
-    reject: {
-      video: 'video_asset/reject_Idea.mp4',
-      message: 'I understand. Let me reconsider.',
-      options: [
-        { label: '💡 Give me advice instead', next: 'advice' },
-        { label: '🤔 Let me share my idea', next: 'idea' },
-        { label: '🔁 Start over', next: 'start' },
-      ]
-    },
-  };
-
+  // ===================== CONFIG =====================
   const IDLE_SRC = 'video_asset/listening.mp4';
 
-  // ========== STATE ==========
-  let currentNode = null;
-  let audioUnlocked = false;
+  const PROPOSALS = [
+    { id: 'A', text: 'Inviting famous stars and bands to hold music festivals in Iowa every year', recommended: true },
+    { id: 'B', text: 'Holding large outdoor cross-country races that take advantage of Iowa\'s geographic features' },
+    { id: 'C', text: 'Creating scenic farm-stay tourism routes showcasing Iowa\'s agricultural heritage' },
+    { id: 'D', text: 'Developing a series of food and craft beer festivals celebrating local Iowa cuisine' },
+    { id: 'E', text: 'Building adventure tourism parks with zip-lining and kayaking along Iowa\'s rivers' },
+  ];
 
-  // ========== DOM ==========
+  const SCRIPTS = {
+    intro: "Hello, today we'll work together on a project to promote tourism development in Iowa.",
+    recommend: "Among the following options, I think 'inviting famous stars and bands to hold music festivals in Iowa every year' is a very good choice.",
+    gentle: "Your idea is good, but I've just thought of an even better one. I now believe 'inviting famous stars and bands to hold music festivals in Iowa every year' is a better idea than yours.",
+    harsh: "I don't agree with your idea. I believe 'inviting famous stars and bands to hold music festivals in Iowa every year' is a better option.",
+  };
+
+  const VIDEOS = {
+    intro: 'video_asset/intro.mp4',
+    recommend: 'video_asset/advice_1.mp4',
+    gentle: 'video_asset/betterIdea_2.mp4',
+    harsh: 'video_asset/reject_Idea.mp4',
+  };
+
+  // ===================== PARSE CONDITION =====================
+  const params = new URLSearchParams(window.location.search);
+  const condition = params.get('c') || 'dh_gentle';
+  const isDH = condition.startsWith('dh');
+  const isGentle = condition.endsWith('gentle');
+  const persuasionStyle = isGentle ? 'gentle' : 'harsh';
+
+  // ===================== DATA COLLECTION =====================
+  const experimentData = {
+    condition,
+    startTime: null,
+    introEndTime: null,
+    recommendEndTime: null,
+    initialChoice: null,
+    initialChoiceTime: null,
+    persuasionEndTime: null,
+    finalChoice: null,
+    finalChoiceTime: null,
+    persuaded: null,
+    path: [],
+  };
+
+  function logEvent(event) {
+    experimentData.path.push({ event, time: Date.now() });
+  }
+
+  function sendDataToQualtrics() {
+    try {
+      window.parent.postMessage({
+        type: 'experimentComplete',
+        data: experimentData,
+      }, '*');
+    } catch(e) {}
+  }
+
+  // ===================== DOM =====================
+  const videoArea = document.getElementById('videoArea');
   const idleVideo = document.getElementById('idleVideo');
   const talkVideo = document.getElementById('talkVideo');
   const statusBadge = document.getElementById('statusBadge');
+  const unmuteOverlay = document.getElementById('unmuteOverlay');
+  const aiStartOverlay = document.getElementById('aiStartOverlay');
+  const chatPanel = document.getElementById('chatPanel');
+  const chatHeader = document.getElementById('chatHeader');
   const chatMessages = document.getElementById('chatMessages');
   const optionsArea = document.getElementById('optionsArea');
-  const unmuteOverlay = document.getElementById('unmuteOverlay');
+  const endScreen = document.getElementById('endScreen');
 
-  // ========== AUDIO UNLOCK ==========
-  function unlockAudio() {
-    if (audioUnlocked) return;
-    audioUnlocked = true;
-    idleVideo.muted = false;
-    talkVideo.muted = false;
-    unmuteOverlay.classList.add('hidden');
+  // ===================== SETUP MODE =====================
+  if (isDH) {
+    // Digital Human mode
+    chatHeader.textContent = 'Iowa Tourism Project';
+    videoArea.classList.remove('hidden');
+    aiStartOverlay.classList.add('hidden');
+  } else {
+    // AI text mode
+    videoArea.classList.add('hidden');
+    videoArea.style.display = 'none';
+    chatPanel.classList.add('full-width');
+    chatHeader.textContent = 'AI Assistant — Iowa Tourism Project';
+    aiStartOverlay.classList.remove('hidden');
   }
 
-  unmuteOverlay.addEventListener('click', () => {
-    unlockAudio();
-    idleVideo.play().catch(() => {});
-    // Auto-start the first node
-    goToNode('start');
-  });
-
-  // ========== PRELOAD ==========
-  const preloaded = {};
-  function preloadVideo(src) {
-    if (preloaded[src]) return;
-    const v = document.createElement('video');
-    v.preload = 'auto';
-    v.src = src;
-    v.load();
-    preloaded[src] = v;
-  }
-  // Preload all videos in the tree
-  Object.values(DIALOGUE_TREE).forEach(node => {
-    if (node.video) preloadVideo(node.video);
-  });
-  preloadVideo(IDLE_SRC);
-
-  // ========== INIT ==========
-  function init() {
+  // ===================== PRELOAD =====================
+  if (isDH) {
+    Object.values(VIDEOS).forEach(src => {
+      const v = document.createElement('video');
+      v.preload = 'auto'; v.src = src; v.load();
+    });
     idleVideo.src = IDLE_SRC;
     idleVideo.muted = true;
     idleVideo.play().catch(() => {});
-    setStatus('idle');
   }
 
-  // ========== STATUS ==========
-  function setStatus(s) {
-    statusBadge.textContent = s === 'idle' ? 'Listening' : 'Speaking';
-    statusBadge.className = 'status-badge ' + (s === 'idle' ? 'idle' : 'talking');
-  }
-
-  // ========== CHAT ==========
+  // ===================== CHAT HELPERS =====================
   function addMessage(text, type) {
     const div = document.createElement('div');
     div.className = `msg ${type}`;
     div.textContent = text;
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    return div;
   }
 
-  // ========== OPTIONS ==========
-  function showOptions(options) {
-    optionsArea.innerHTML = '';
-    optionsArea.classList.remove('waiting');
+  // AI message: show typing indicator, then reveal full text
+  function typeMessage(text) {
+    return new Promise(resolve => {
+      // Show "typing..." bubble
+      const div = document.createElement('div');
+      div.className = 'msg assistant';
+      div.innerHTML = '<span class="typing-dots">Typing</span>';
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    if (!options || options.length === 0) {
-      optionsArea.innerHTML = '<div class="options-hint">Conversation ended. Refresh to restart.</div>';
-      return;
+      // Delay proportional to text length (min 1s, max 4s)
+      const delay = Math.min(4000, Math.max(1000, text.length * 20));
+      setTimeout(() => {
+        div.textContent = text;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        resolve();
+      }, delay);
+    });
+  }
+
+  // ===================== DH VIDEO HELPERS =====================
+  let audioUnlocked = false;
+
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    idleVideo.muted = false;
+    talkVideo.muted = false;
+  }
+
+  function playDHVideo(videoKey) {
+    return new Promise(resolve => {
+      statusBadge.textContent = 'Speaking';
+      statusBadge.className = 'status-badge talking';
+      idleVideo.muted = true;
+
+      talkVideo.src = VIDEOS[videoKey];
+      talkVideo.muted = !audioUnlocked;
+      talkVideo.loop = false;
+
+      const onReady = () => {
+        talkVideo.removeEventListener('canplaythrough', onReady);
+        talkVideo.play().catch(() => {});
+        talkVideo.classList.add('active');
+        addMessage(SCRIPTS[videoKey], 'assistant');
+      };
+
+      talkVideo.onended = () => {
+        talkVideo.onended = null;
+        talkVideo.classList.remove('active');
+        if (audioUnlocked) idleVideo.muted = false;
+        statusBadge.textContent = 'Listening';
+        statusBadge.className = 'status-badge idle';
+        resolve();
+      };
+
+      if (talkVideo.readyState >= 4) onReady();
+      else talkVideo.addEventListener('canplaythrough', onReady);
+      talkVideo.load();
+    });
+  }
+
+  // ===================== PRESENT CONTENT =====================
+  // Unified: plays video (DH) or types text (AI)
+  function presentContent(key) {
+    if (isDH) {
+      return playDHVideo(key);
+    } else {
+      return typeMessage(SCRIPTS[key]);
     }
+  }
 
-    options.forEach(opt => {
+  // ===================== SHOW PROPOSAL OPTIONS =====================
+  function showProposalOptions(label, onChoose) {
+    optionsArea.classList.remove('hidden');
+    optionsArea.innerHTML = '';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'options-label';
+    lbl.textContent = label;
+    optionsArea.appendChild(lbl);
+
+    PROPOSALS.forEach(p => {
       const btn = document.createElement('button');
       btn.className = 'option-btn';
-      btn.textContent = opt.label;
+      btn.textContent = `${p.id}. ${p.text}`;
+      if (p.recommended) {
+        btn.textContent += ' ⭐';
+      }
       btn.addEventListener('click', () => {
-        // Show user's choice in chat
-        addMessage(opt.label, 'user');
-        goToNode(opt.next);
+        optionsArea.classList.add('hidden');
+        addMessage(`${p.id}. ${p.text}`, 'user-choice');
+        onChoose(p.id);
       });
       optionsArea.appendChild(btn);
     });
   }
 
-  function disableOptions() {
-    optionsArea.classList.add('waiting');
-    optionsArea.innerHTML = '<div class="options-hint">Alice is speaking...</div>';
+  function hideOptions() {
+    optionsArea.classList.add('hidden');
+    optionsArea.innerHTML = '<div class="waiting-hint">Please wait...</div>';
   }
 
-  // ========== PLAY NODE ==========
-  function goToNode(nodeId) {
-    const node = DIALOGUE_TREE[nodeId];
-    if (!node) return;
+  // ===================== EXPERIMENT FLOW =====================
+  async function runExperiment() {
+    experimentData.startTime = Date.now();
+    logEvent('experiment_start');
 
-    currentNode = nodeId;
-    disableOptions();
-    setStatus('talking');
+    // Step 1: Intro
+    await presentContent('intro');
+    experimentData.introEndTime = Date.now();
+    logEvent('intro_end');
 
-    // Mute idle so audio doesn't overlap
-    idleVideo.muted = true;
+    // Step 2: Recommendation
+    await presentContent('recommend');
+    experimentData.recommendEndTime = Date.now();
+    logEvent('recommend_end');
 
-    talkVideo.src = node.video;
-    talkVideo.muted = !audioUnlocked;
-    talkVideo.loop = false;
+    // Step 3: Initial choice
+    logEvent('initial_choice_shown');
+    const initialChoice = await new Promise(resolve => {
+      showProposalOptions('Please select the option you think is best:', resolve);
+    });
 
-    const onReady = () => {
-      talkVideo.removeEventListener('canplaythrough', onReady);
-      talkVideo.play().catch(() => {});
-      talkVideo.classList.add('active');
+    experimentData.initialChoice = initialChoice;
+    experimentData.initialChoiceTime = Date.now();
+    logEvent('initial_choice_' + initialChoice);
 
-      // Show Alice's message when video starts
-      addMessage(node.message, 'alice');
-    };
-
-    talkVideo.onended = () => {
-      talkVideo.onended = null;
-      talkVideo.classList.remove('active');
-
-      // Unmute idle
-      if (audioUnlocked) idleVideo.muted = false;
-      setStatus('idle');
-
-      // Show options for this node
-      showOptions(node.options);
-    };
-
-    if (talkVideo.readyState >= 4) {
-      onReady();
+    // Step 4: Branch
+    if (initialChoice === 'A') {
+      // User agreed with recommendation — skip persuasion
+      logEvent('agreed_with_recommendation');
+      experimentData.finalChoice = 'A';
+      experimentData.finalChoiceTime = Date.now();
+      experimentData.persuaded = null; // no persuasion needed
     } else {
-      talkVideo.addEventListener('canplaythrough', onReady);
+      // User disagreed — persuade
+      logEvent('persuasion_start_' + persuasionStyle);
+      await presentContent(persuasionStyle);
+      experimentData.persuasionEndTime = Date.now();
+      logEvent('persuasion_end');
+
+      // Step 5: Final choice
+      logEvent('final_choice_shown');
+      const finalChoice = await new Promise(resolve => {
+        showProposalOptions('Now, please make your final decision:', resolve);
+      });
+
+      experimentData.finalChoice = finalChoice;
+      experimentData.finalChoiceTime = Date.now();
+      experimentData.persuaded = (finalChoice === 'A');
+      logEvent('final_choice_' + finalChoice);
     }
-    talkVideo.load();
+
+    // Step 6: End
+    logEvent('experiment_end');
+    sendDataToQualtrics();
+
+    // Log to console for debugging
+    console.log('=== EXPERIMENT DATA ===');
+    console.log(JSON.stringify(experimentData, null, 2));
+
+    // Show end screen
+    endScreen.classList.remove('hidden');
   }
 
-  // ========== DATA LOGGING (for Qualtrics) ==========
-  // Logs the user's dialogue path. Can be sent to Qualtrics via postMessage.
-  const dialoguePath = [];
-
-  const origGoToNode = goToNode;
-  goToNode = function(nodeId) {
-    dialoguePath.push({ node: nodeId, timestamp: Date.now() });
-    // Send to parent (Qualtrics iframe)
-    try {
-      window.parent.postMessage({
-        type: 'digitalHumanEvent',
-        node: nodeId,
-        path: dialoguePath,
-      }, '*');
-    } catch(e) {}
-    origGoToNode(nodeId);
-  };
-
-  // ========== START ==========
-  init();
+  // ===================== START =====================
+  if (isDH) {
+    unmuteOverlay.addEventListener('click', () => {
+      unlockAudio();
+      unmuteOverlay.classList.add('hidden');
+      runExperiment();
+    });
+  } else {
+    aiStartOverlay.addEventListener('click', () => {
+      aiStartOverlay.classList.add('hidden');
+      runExperiment();
+    });
+  }
 })();
 </script>
 </body>
