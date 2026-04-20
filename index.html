@@ -204,28 +204,31 @@
   const SCRIPTS = {
     intro: "Hello, today we'll work together on a project to promote tourism development in Iowa.",
     recommend: "Among the following options, I think 'inviting famous stars and bands to hold music festivals in Iowa every year' is a very good choice.",
-    gentle: "Your idea is good, but I've just thought of an even better one. I now believe 'inviting famous stars and bands to hold music festivals in Iowa every year' is a better idea than yours.",
-    harsh: "I don't agree with your idea. I believe 'inviting famous stars and bands to hold music festivals in Iowa every year' is a better option.",
+    persuade: "Your idea is good, but I've just thought of an even better one. I now believe 'inviting famous stars and bands to hold music festivals in Iowa every year' is a better idea than yours.",
   };
 
   const VIDEOS = {
     intro: 'video_asset/intro.mp4',
     recommend: 'video_asset/advice_1.mp4',
-    gentle: 'video_asset/betterIdea_2.mp4',
-    harsh: 'video_asset/reject_Idea.mp4',
+    persuade: 'video_asset/betterIdea_2.mp4',
   };
 
   // ===================== PARSE CONDITION =====================
   const params = new URLSearchParams(window.location.search);
-  // Condition codes (opaque to participants):
-  // 1 = DH + gentle,  2 = DH + harsh
-  // 3 = AI + gentle,  4 = AI + harsh
+  // Opaque condition codes (no semantic info to avoid demand effects):
+  // 1 = AI + with-recommendation,    2 = AI + no-recommendation
+  // 3 = DH + with-recommendation,    4 = DH + no-recommendation
   const condCode = params.get('c') || '1';
-  const COND_MAP = { '1': 'dh_gentle', '2': 'dh_harsh', '3': 'ai_gentle', '4': 'ai_harsh' };
-  const condition = COND_MAP[condCode] || 'dh_gentle';
-  const isDH = condition.startsWith('dh');
-  const isGentle = condition.endsWith('gentle');
-  const persuasionStyle = isGentle ? 'gentle' : 'harsh';
+  const COND_MAP = {
+    '1': { medium: 'ai', recommend: true  },
+    '2': { medium: 'ai', recommend: false },
+    '3': { medium: 'dh', recommend: true  },
+    '4': { medium: 'dh', recommend: false },
+  };
+  const cfg = COND_MAP[condCode] || COND_MAP['1'];
+  const isDH = cfg.medium === 'dh';
+  const showRecommendation = cfg.recommend;
+  const condition = `${cfg.medium}_${cfg.recommend ? 'rec' : 'norec'}`;
 
   // ===================== DATA COLLECTION =====================
   const experimentData = {
@@ -304,23 +307,16 @@
     return div;
   }
 
-  // AI message: show typing indicator, then reveal full text
+  // AI message: show text immediately (AI is a tool, no typing animation)
   function typeMessage(text) {
     return new Promise(resolve => {
-      // Show "typing..." bubble
       const div = document.createElement('div');
       div.className = 'msg assistant';
-      div.innerHTML = '<span class="typing-dots">Typing</span>';
+      div.textContent = text;
       chatMessages.appendChild(div);
       chatMessages.scrollTop = chatMessages.scrollHeight;
-
-      // Delay proportional to text length (min 1s, max 4s)
-      const delay = Math.min(4000, Math.max(1000, text.length * 20));
-      setTimeout(() => {
-        div.textContent = text;
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-        resolve();
-      }, delay);
+      // Small pause before showing options (so user can read)
+      setTimeout(resolve, 600);
     });
   }
 
@@ -441,51 +437,43 @@
     experimentData.startTime = Date.now();
     logEvent('experiment_start');
 
-    // Step 1: Intro
+    // Step 1: Intro (always)
     await presentContent('intro');
     experimentData.introEndTime = Date.now();
     logEvent('intro_end');
 
-    // Step 2: Recommendation
-    await presentContent('recommend');
-    experimentData.recommendEndTime = Date.now();
-    logEvent('recommend_end');
+    // Step 2: Recommendation (only in "with-recommendation" conditions)
+    if (showRecommendation) {
+      await presentContent('recommend');
+      experimentData.recommendEndTime = Date.now();
+      logEvent('recommend_end');
+    }
 
-    // Step 3: Initial choice
+    // Step 3: Initial choice (always)
     logEvent('initial_choice_shown');
     const initialChoice = await new Promise(resolve => {
       showProposalOptions('Please select the option you think is best:', resolve);
     });
-
     experimentData.initialChoice = initialChoice;
     experimentData.initialChoiceTime = Date.now();
     logEvent('initial_choice_' + initialChoice);
 
-    // Step 4: Branch
-    if (initialChoice === 'A') {
-      // User agreed with recommendation — skip persuasion
-      logEvent('agreed_with_recommendation');
-      experimentData.finalChoice = 'A';
-      experimentData.finalChoiceTime = Date.now();
-      experimentData.persuaded = null; // no persuasion needed
-    } else {
-      // User disagreed — persuade
-      logEvent('persuasion_start_' + persuasionStyle);
-      await presentContent(persuasionStyle);
-      experimentData.persuasionEndTime = Date.now();
-      logEvent('persuasion_end');
+    // Step 4: Persuasion (always — even if user agreed with recommendation)
+    logEvent('persuasion_start');
+    await presentContent('persuade');
+    experimentData.persuasionEndTime = Date.now();
+    logEvent('persuasion_end');
 
-      // Step 5: Final choice
-      logEvent('final_choice_shown');
-      const finalChoice = await new Promise(resolve => {
-        showProposalOptions('Now, please make your final decision:', resolve);
-      });
-
-      experimentData.finalChoice = finalChoice;
-      experimentData.finalChoiceTime = Date.now();
-      experimentData.persuaded = (finalChoice === 'A');
-      logEvent('final_choice_' + finalChoice);
-    }
+    // Step 5: Final choice (always)
+    logEvent('final_choice_shown');
+    const finalChoice = await new Promise(resolve => {
+      showProposalOptions('Now, please make your final decision:', resolve);
+    });
+    experimentData.finalChoice = finalChoice;
+    experimentData.finalChoiceTime = Date.now();
+    experimentData.persuaded = (finalChoice === 'A');
+    experimentData.changedMind = (initialChoice !== finalChoice);
+    logEvent('final_choice_' + finalChoice);
 
     // Step 6: End
     logEvent('experiment_end');
