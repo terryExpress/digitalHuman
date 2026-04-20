@@ -348,7 +348,6 @@
         talkVideo.removeEventListener('canplaythrough', onReady);
         talkVideo.play().catch(() => {});
         talkVideo.classList.add('active');
-        addMessage(SCRIPTS[videoKey], 'assistant');
       };
 
       talkVideo.onended = () => {
@@ -357,6 +356,8 @@
         if (audioUnlocked) idleVideo.muted = false;
         statusBadge.textContent = 'Listening';
         statusBadge.className = 'status-badge idle';
+        // Show message only after video finishes speaking
+        addMessage(SCRIPTS[videoKey], 'assistant');
         resolve();
       };
 
