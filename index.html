@@ -344,12 +344,36 @@
       talkVideo.muted = !audioUnlocked;
       talkVideo.loop = false;
 
+      let subtitleDiv = null;
+      let subtitleTimer = null;
+
       const onReady = () => {
         talkVideo.removeEventListener('canplaythrough', onReady);
         talkVideo.play().catch(() => {});
         talkVideo.classList.add('active');
-        // Show subtitle with a slight delay, like real captions
-        setTimeout(() => addMessage(SCRIPTS[videoKey], 'assistant'), 1500);
+
+        // Word-by-word subtitle after 1s delay
+        const text = SCRIPTS[videoKey];
+        const words = text.split(' ');
+        const videoDuration = talkVideo.duration || 10;
+        // Spread words across ~80% of video duration, starting at 1s
+        const totalSubTime = (videoDuration - 1) * 0.8;
+        const wordDelay = (totalSubTime / words.length) * 1000;
+
+        subtitleDiv = document.createElement('div');
+        subtitleDiv.className = 'msg assistant';
+        subtitleDiv.textContent = '';
+        chatMessages.appendChild(subtitleDiv);
+
+        let wi = 0;
+        subtitleTimer = setTimeout(function showWord() {
+          if (wi < words.length) {
+            subtitleDiv.textContent += (wi > 0 ? ' ' : '') + words[wi];
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            wi++;
+            subtitleTimer = setTimeout(showWord, wordDelay);
+          }
+        }, 1000);
       };
 
       talkVideo.onended = () => {
@@ -358,6 +382,10 @@
         if (audioUnlocked) idleVideo.muted = false;
         statusBadge.textContent = 'Listening';
         statusBadge.className = 'status-badge idle';
+        // Ensure full text is shown when video ends
+        clearTimeout(subtitleTimer);
+        if (subtitleDiv) subtitleDiv.textContent = SCRIPTS[videoKey];
+        chatMessages.scrollTop = chatMessages.scrollHeight;
         resolve();
       };
 
