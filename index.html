@@ -348,6 +348,8 @@
         talkVideo.removeEventListener('canplaythrough', onReady);
         talkVideo.play().catch(() => {});
         talkVideo.classList.add('active');
+        // Show subtitle with a slight delay, like real captions
+        setTimeout(() => addMessage(SCRIPTS[videoKey], 'assistant'), 1500);
       };
 
       talkVideo.onended = () => {
@@ -356,8 +358,6 @@
         if (audioUnlocked) idleVideo.muted = false;
         statusBadge.textContent = 'Listening';
         statusBadge.className = 'status-badge idle';
-        // Show message only after video finishes speaking
-        addMessage(SCRIPTS[videoKey], 'assistant');
         resolve();
       };
 
